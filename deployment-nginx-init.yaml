@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-init-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-init
+  template:
+    metadata:
+      labels:
+        app: nginx-init
+    spec:
+      initContainers:
+      - name: wait-for-service
+        image: busybox:latest
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for service DNS: nginx-service..."
+          while ! nslookup nginx-service.default.svc.cluster.local 2>&1 | grep -q "Address: 10"; do
+            echo "DNS not ready, waiting 5 seconds..."
+            sleep 5
+          done
+          echo "DNS resolved! Service exists."
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
